@@ -8,7 +8,6 @@ local gfxSettings = {
     TeleportOffset = Vector3.new(0, 5, 0)
 }
 
--- Универсальный поиск базы по тексту "YOUR BASE" (без учёта регистра) или нику игрока
 local function FindMyBase()
     local myName = LocalPlayer.Name
     for _, obj in ipairs(workspace:GetDescendants()) do
@@ -29,7 +28,6 @@ local function FindMyBase()
     return nil
 end
 
--- Контроллер невидимости
 local VisibilityController = {}
 VisibilityController.__index = VisibilityController
 
@@ -79,7 +77,6 @@ function VisibilityController:SetInvisible(state)
     end
 end
 
--- Модуль телепортации
 local TeleportModule = {}
 TeleportModule.__index = TeleportModule
 
@@ -113,7 +110,6 @@ function TeleportModule:TeleportToBase()
     end
 end
 
--- GUI
 local function createMobileGUI()
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "PENIS_MobileUI"
@@ -144,7 +140,6 @@ local function createMobileGUI()
     return {InvButton = InvButton, TpBaseButton = TpBaseButton}
 end
 
--- Основной цикл
 local function main()
     local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local visCtrl = VisibilityController.new(Character)
@@ -169,7 +164,6 @@ local function main()
         end
     end)
 
-    -- Исправленная обработка касания (Vector2, а не массив)
     UserInputService.TouchTapInWorld:Connect(function(touchData, processedByUI)
         if processedByUI then return end
         local currentTime = tick()
@@ -191,91 +185,6 @@ local function main()
         local raycastResult = workspace:Raycast(rayOrigin, rayDirection)
         if raycastResult then
             tpModule:TeleportToPosition(raycastResult.Position)
-        end
-    end)
-end
-
-if not game:IsLoaded() then game.Loaded:Wait() end
-main()end
-
-function TeleportModule:TeleportToBase()
-    local baseCFrame = FindMyBase()
-    if baseCFrame then
-        self:TeleportToPosition(baseCFrame)
-    end
-end
-
--- GUI
-local function createMobileGUI()
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "PENIS_MobileUI"
-    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-    local InvButton = Instance.new("TextButton")
-    InvButton.Size = UDim2.new(0, 120, 0, 60)
-    InvButton.Position = UDim2.new(0, 20, 0, 100)
-    InvButton.BackgroundColor3 = Color3.fromRGB(30, 144, 255)
-    InvButton.Text = "INVIS OFF"
-    InvButton.TextColor3 = Color3.new(1,1,1)
-    InvButton.Font = Enum.Font.SourceSansBold
-    InvButton.TextScaled = true
-    InvButton.Parent = ScreenGui
-
-    local TpBaseButton = Instance.new("TextButton")
-    TpBaseButton.Size = UDim2.new(0, 120, 0, 60)
-    TpBaseButton.Position = UDim2.new(0, 20, 0, 180)
-    TpBaseButton.BackgroundColor3 = Color3.fromRGB(220, 20, 60)
-    TpBaseButton.Text = "TP BASE"
-    TpBaseButton.TextColor3 = Color3.new(1,1,1)
-    TpBaseButton.Font = Enum.Font.SourceSansBold
-    TpBaseButton.TextScaled = true
-    TpBaseButton.Parent = ScreenGui
-
-    return {InvButton = InvButton, TpBaseButton = TpBaseButton}
-end
-
--- Основной цикл
-local function main()
-    local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local visCtrl = VisibilityController.new(Character)
-    local tpModule = TeleportModule.new(Character)
-    local gui = createMobileGUI()
-
-    gui.InvButton.Activated:Connect(function()
-        visCtrl:SetInvisible(not visCtrl.IsInvisible)
-        gui.InvButton.Text = visCtrl.IsInvisible and "INVIS ON" or "INVIS OFF"
-    end)
-
-    gui.TpBaseButton.Activated:Connect(function()
-        tpModule:TeleportToBase()
-    end)
-
-    LocalPlayer.CharacterAdded:Connect(function(newChar)
-        Character = newChar
-        visCtrl = VisibilityController.new(newChar)
-        tpModule = TeleportModule.new(newChar)
-        if visCtrl.IsInvisible then
-            visCtrl:SetInvisible(true)
-        end
-    end)
-
-    -- Тач-телепорт (исправление Vector2)
-    UserInputService.TouchTapInWorld:Connect(function(touchPositions, processedByUI)
-        if processedByUI then return end
-        local currentTime = tick()
-        if currentTime - tpModule.LastTouchTime < tpModule.TouchCooldown then return end
-        tpModule.LastTouchTime = currentTime
-        if touchPositions and #touchPositions > 0 then
-            local touchPoint = touchPositions[1]
-            local ray = Camera:ScreenPointToRay(touchPoint.X, touchPoint.Y)
-            local rayOrigin = ray.Origin
-            local rayDirection = ray.Direction * 1000
-            local raycastResult = workspace:Raycast(rayOrigin, rayDirection)
-            if raycastResult then
-                tpModule:TeleportToPosition(raycastResult.Position)
-            end
         end
     end)
 end
