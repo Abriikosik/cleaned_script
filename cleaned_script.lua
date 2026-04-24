@@ -8,15 +8,19 @@ local gfxSettings = {
     TeleportOffset = Vector3.new(0, 5, 0)
 }
 
--- Поиск базы по тексту "YOUR BASE"
+-- Универсальный поиск базы по тексту "YOUR BASE" (без учёта регистра) или нику игрока
 local function FindMyBase()
+    local myName = LocalPlayer.Name
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
             for _, child in ipairs(obj:GetDescendants()) do
-                if child:IsA("TextLabel") and child.Text:find("YOUR BASE") then
-                    local part = obj:FindFirstAncestorOfClass("BasePart")
-                    if part then
-                        return part.CFrame
+                if child:IsA("TextLabel") then
+                    local txt = child.Text:upper()
+                    if txt:find("YOUR BASE") or txt:find(myName:upper()) then
+                        local part = obj:FindFirstAncestorOfClass("BasePart")
+                        if part then
+                            return part.CFrame
+                        end
                     end
                 end
             end
@@ -101,6 +105,98 @@ function TeleportModule:TeleportToPosition(targetCFrame)
     self.RootPart.Velocity = Vector3.zero
     self.RootPart.RotVelocity = Vector3.zero
 end
+
+function TeleportModule:TeleportToBase()
+    local baseCFrame = FindMyBase()
+    if baseCFrame then
+        self:TeleportToPosition(baseCFrame)
+    end
+end
+
+-- GUI
+local function createMobileGUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "PENIS_MobileUI"
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    local InvButton = Instance.new("TextButton")
+    InvButton.Size = UDim2.new(0, 120, 0, 60)
+    InvButton.Position = UDim2.new(0, 20, 0, 100)
+    InvButton.BackgroundColor3 = Color3.fromRGB(30, 144, 255)
+    InvButton.Text = "INVIS OFF"
+    InvButton.TextColor3 = Color3.new(1,1,1)
+    InvButton.Font = Enum.Font.SourceSansBold
+    InvButton.TextScaled = true
+    InvButton.Parent = ScreenGui
+
+    local TpBaseButton = Instance.new("TextButton")
+    TpBaseButton.Size = UDim2.new(0, 120, 0, 60)
+    TpBaseButton.Position = UDim2.new(0, 20, 0, 180)
+    TpBaseButton.BackgroundColor3 = Color3.fromRGB(220, 20, 60)
+    TpBaseButton.Text = "TP BASE"
+    TpBaseButton.TextColor3 = Color3.new(1,1,1)
+    TpBaseButton.Font = Enum.Font.SourceSansBold
+    TpBaseButton.TextScaled = true
+    TpBaseButton.Parent = ScreenGui
+
+    return {InvButton = InvButton, TpBaseButton = TpBaseButton}
+end
+
+-- Основной цикл
+local function main()
+    local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local visCtrl = VisibilityController.new(Character)
+    local tpModule = TeleportModule.new(Character)
+    local gui = createMobileGUI()
+
+    gui.InvButton.Activated:Connect(function()
+        visCtrl:SetInvisible(not visCtrl.IsInvisible)
+        gui.InvButton.Text = visCtrl.IsInvisible and "INVIS ON" or "INVIS OFF"
+    end)
+
+    gui.TpBaseButton.Activated:Connect(function()
+        tpModule:TeleportToBase()
+    end)
+
+    LocalPlayer.CharacterAdded:Connect(function(newChar)
+        Character = newChar
+        visCtrl = VisibilityController.new(newChar)
+        tpModule = TeleportModule.new(newChar)
+        if visCtrl.IsInvisible then
+            visCtrl:SetInvisible(true)
+        end
+    end)
+
+    -- Исправленная обработка касания (Vector2, а не массив)
+    UserInputService.TouchTapInWorld:Connect(function(touchData, processedByUI)
+        if processedByUI then return end
+        local currentTime = tick()
+        if currentTime - tpModule.LastTouchTime < tpModule.TouchCooldown then return end
+        tpModule.LastTouchTime = currentTime
+
+        local touchPoint
+        if typeof(touchData) == "Vector2" then
+            touchPoint = touchData
+        elseif type(touchData) == "table" and #touchData > 0 then
+            touchPoint = touchData[1]
+        else
+            return
+        end
+
+        local ray = Camera:ScreenPointToRay(touchPoint.X, touchPoint.Y)
+        local rayOrigin = ray.Origin
+        local rayDirection = ray.Direction * 1000
+        local raycastResult = workspace:Raycast(rayOrigin, rayDirection)
+        if raycastResult then
+            tpModule:TeleportToPosition(raycastResult.Position)
+        end
+    end)
+end
+
+if not game:IsLoaded() then game.Loaded:Wait() end
+main()end
 
 function TeleportModule:TeleportToBase()
     local baseCFrame = FindMyBase()
