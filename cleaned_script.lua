@@ -57,13 +57,7 @@ spawn(function()
             label.Parent = bg
         end
     end
-end)    })
-
-    -- Главное окно
-    self.mainFrame = createInstance("Frame", {
-        Parent = self.gui,
-        Size = UDim2.new(0, 500, 0, 350),
-        Position = position or UDim2.new(0.5, -250, 0.5, -175),
+end)        Position = position or UDim2.new(0.5, -250, 0.5, -175),
         BackgroundColor3 = config.theme.background,
         BorderSizePixel = 0,
         Visible = config.menuVisible,
