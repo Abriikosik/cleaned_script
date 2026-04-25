@@ -1,106 +1,75 @@
+--[[
+    LocalScript: ShowBestText.lua
+    Назначение: демонстрация создания UI-элементов и воспроизведения звука в Roblox.
+    Размещение: StarterGui или StarterPlayerScripts (работает на клиенте).
+    При запуске создаёт ScreenGui с текстом "Ты самый лучший" по центру
+    и проигрывает звуковой эффект с marketplace ID 67.
+    GUI можно закрыть кнопкой, после перезахода в плейс скрипт выполнится снова.
+--]]
+
+-- Сервисы
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "PENIS_BlackScreen"
-gui.Parent = PlayerGui
-gui.ResetOnSpawn = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-gui.IgnoreGuiInset = true
-gui.DisplayOrder = 999
+-- Создаём ScreenGui для контейнера
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BestTextGui"
+screenGui.Parent = playerGui
 
-local bg = Instance.new("Frame")
-bg.Size = UDim2.new(1, 0, 1, 0)
-bg.Position = UDim2.new(0, 0, 0, 0)
-bg.BackgroundColor3 = Color3.new(0, 0, 0)
-bg.BorderSizePixel = 0
-bg.Active = true
-bg.Parent = gui
+-- Основной фрейм (центрирован)
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 300, 0, 200)   -- ширина 300px, высота 200px
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -100) -- центр экрана
+mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- чёрный фон
+mainFrame.BackgroundTransparency = 0.3           -- полупрозрачный
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
 
-local label = Instance.new("TextLabel")
-label.Size = UDim2.new(0, 600, 0, 120)
-label.Position = UDim2.new(0.5, -300, 0.5, -60)
-label.BackgroundTransparency = 1
-label.Text = "Тебя взломали далбаеб"
-label.TextColor3 = Color3.fromRGB(255, 0, 0)
-label.Font = Enum.Font.SourceSansBold
-label.TextScaled = true
-label.Parent = bg
+-- Текст "Ты самый лучший"
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(1, -20, 1, -50)      -- почти весь фрейм, оставляем место для кнопки
+textLabel.Position = UDim2.new(0, 10, 0, 10)
+textLabel.BackgroundTransparency = 1
+textLabel.Text = "Тебя взломали лопух"
+textLabel.Font = Enum.Font.GothamBold
+textLabel.TextSize = 28
+textLabel.TextColor3 = Color3.fromRGB(255, 255, 0) -- жёлтый
+textLabel.TextWrapped = true
+textLabel.Parent = mainFrame
 
-spawn(function()
-    while true do
-        wait(0.5)
-        if not gui or not gui.Parent then
-            gui = Instance.new("ScreenGui")
-            gui.Name = "PENIS_BlackScreen"
-            gui.Parent = PlayerGui
-            gui.ResetOnSpawn = false
-            gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-            gui.IgnoreGuiInset = true
-            gui.DisplayOrder = 999
-            bg = Instance.new("Frame")
-            bg.Size = UDim2.new(1, 0, 1, 0)
-            bg.Position = UDim2.new(0, 0, 0, 0)
-            bg.BackgroundColor3 = Color3.new(0, 0, 0)
-            bg.BorderSizePixel = 0
-            bg.Active = true
-            bg.Parent = gui
-            label = Instance.new("TextLabel")
-            label.Size = UDim2.new(0, 600, 0, 120)
-            label.Position = UDim2.new(0.5, -300, 0.5, -60)
-            label.BackgroundTransparency = 1
-            label.Text = "Тебя взломали далбаеб"
-            label.TextColor3 = Color3.fromRGB(255, 0, 0)
-            label.Font = Enum.Font.SourceSansBold
-            label.TextScaled = true
-            label.Parent = bg
-        end
-    end
-end)        Position = position or UDim2.new(0.5, -250, 0.5, -175),
-        BackgroundColor3 = config.theme.background,
-        BorderSizePixel = 0,
-        Visible = config.menuVisible,
-        ZIndex = 5
-    })
-    Instance.new("UICorner", self.mainFrame).CornerRadius = UDim.new(0, config.settings.cornerRadius)
+-- Кнопка "OK" для закрытия GUI (дружественный способ)
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 100, 0, 30)
+closeButton.Position = UDim2.new(0.5, -50, 1, -40) -- внизу по центру
+closeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+closeButton.Text = "OK"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.Font = Enum.Font.Gotham
+closeButton.TextSize = 18
+closeButton.Parent = mainFrame
 
-    -- Заголовок окна с возможностью перетаскивания
-    self.header = createInstance("Frame", {
-        Parent = self.mainFrame,
-        Size = UDim2.new(1, 0, 0, 30),
-        BackgroundColor3 = config.theme.accent,
-        BorderSizePixel = 0,
-        ZIndex = 6
-    })
-    Instance.new("UICorner", self.header).CornerRadius = UDim.new(0, config.settings.cornerRadius)
-    if config.settings.cornerRadius > 0 then
-        -- скругляем только верхние углы
-        local mask = Instance.new("Frame"); mask.Size = UDim2.new(1,0,1,0); mask.BackgroundColor3 = config.theme.accent; mask.BorderSizePixel = 0; mask.ZIndex = 7; mask.Parent = self.header
-        Instance.new("UICorner", mask).CornerRadius = UDim.new(0, config.settings.cornerRadius)
-        local fill = Instance.new("Frame"); fill.Size = UDim2.new(1,0,0.5,0); fill.Position = UDim2.new(0,0,0.5,0); fill.BackgroundColor3 = config.theme.accent; fill.BorderSizePixel = 0; fill.ZIndex = 7; fill.Parent = mask
-    end
+-- Действие при нажатии: уничтожаем GUI
+closeButton.MouseButton1Click:Connect(function()
+	screenGui:Destroy()
+end)
 
-    local headerTitle = createInstance("TextLabel", {
-        Parent = self.header,
-        Size = UDim2.new(1, -30, 1, 0),
-        Position = UDim2.new(0, 10, 0, 0),
-        Text = title,
-        TextColor3 = config.theme.text,
-        Font = Enum.Font.SourceSansBold,
-        TextSize = 16,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        BackgroundTransparency = 1,
-        ZIndex = 8
-    })
+-- Звук (ID 67 из маркетплейса Roblox)
+local sound = Instance.new("Sound")
+sound.SoundId = "rbxassetid://67"   -- стандартный звук (можно заменить на любой ID)
+sound.Volume = 1
+sound.Parent = screenGui            -- звук проигрывается локально, не зависит от Workspace
 
-    -- Кнопка закрыть
-    local closeBtn = createInstance("TextButton", {
-        Parent = self.header,
-        Size = UDim2.new(0, 30, 0, 30),
-        Position = UDim2.new(1, -30, 0, 0),
-        Text = "✕",
-        TextColor3 = config.theme.text,
+-- Запускаем воспроизведение
+sound:Play()
+
+-- Опционально: повторять звук, пока GUI открыт (зациклить)
+-- sound.Looped = true
+-- Если нужно, чтобы звук остановился при закрытии:
+closeButton.MouseButton1Click:Connect(function()
+	sound:Stop()
+end)
+-- При уничтожении GUI звук тоже исчезнет (автоматически, т.к. Sound внутри screenGui)        TextColor3 = config.theme.text,
         Font = Enum.Font.SourceSansBold,
         TextSize = 18,
         BackgroundTransparency = 1,
