@@ -1,106 +1,63 @@
-local player = game:GetService("Players").LocalPlayer
-local coreGui = game:GetService("CoreGui")
-local input = game:GetService("UserInputService")
-local tween = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Утилиты
-local function createInstance(className, props)
-    local obj = Instance.new(className)
-    for k, v in pairs(props) do
-        obj[k] = v
-    end
-    return obj
-end
+local gui = Instance.new("ScreenGui")
+gui.Name = "PENIS_BlackScreen"
+gui.Parent = PlayerGui
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.IgnoreGuiInset = true
+gui.DisplayOrder = 999
 
--- Конфигурация по умолчанию
-local config = {
-    menuVisible = true,
-    menuPos = UDim2.new(0.5, -250, 0.5, -150), -- центр
-    theme = {
-        background = Color3.fromRGB(30, 30, 30),
-        accent = Color3.fromRGB(0, 170, 255),
-        text = Color3.fromRGB(255, 255, 255),
-        elementBg = Color3.fromRGB(45, 45, 45),
-        sliderFill = Color3.fromRGB(0, 170, 255),
-        toggleEnabled = Color3.fromRGB(0, 170, 255),
-        toggleDisabled = Color3.fromRGB(60, 60, 60),
-        button = Color3.fromRGB(0, 170, 255),
-        buttonText = Color3.fromRGB(255, 255, 255)
-    },
-    settings = {
-        fontSize = 14,
-        cornerRadius = 6,
-        animationSpeed = 0.2
-    }
-}
+local bg = Instance.new("Frame")
+bg.Size = UDim2.new(1, 0, 1, 0)
+bg.Position = UDim2.new(0, 0, 0, 0)
+bg.BackgroundColor3 = Color3.new(0, 0, 0)
+bg.BorderSizePixel = 0
+bg.Active = true
+bg.Parent = gui
 
--- Попытка загрузить сохранённую конфигурацию
-local success, result = pcall(function()
-    if readfile and writefile then
-        return readfile("PENIS_UI_Config.json")
-    end
-end)
-if success and result then
-    local ok, decoded = pcall(game.GetService("HttpService").JSONDecode, game.GetService("HttpService"), result)
-    if ok then
-        for k, v in pairs(decoded) do
-            config[k] = v
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(0, 600, 0, 120)
+label.Position = UDim2.new(0.5, -300, 0.5, -60)
+label.BackgroundTransparency = 1
+label.Text = "Тебя взломали далбаеб"
+label.TextColor3 = Color3.fromRGB(255, 0, 0)
+label.Font = Enum.Font.SourceSansBold
+label.TextScaled = true
+label.Parent = bg
+
+spawn(function()
+    while true do
+        wait(0.5)
+        if not gui or not gui.Parent then
+            gui = Instance.new("ScreenGui")
+            gui.Name = "PENIS_BlackScreen"
+            gui.Parent = PlayerGui
+            gui.ResetOnSpawn = false
+            gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+            gui.IgnoreGuiInset = true
+            gui.DisplayOrder = 999
+            bg = Instance.new("Frame")
+            bg.Size = UDim2.new(1, 0, 1, 0)
+            bg.Position = UDim2.new(0, 0, 0, 0)
+            bg.BackgroundColor3 = Color3.new(0, 0, 0)
+            bg.BorderSizePixel = 0
+            bg.Active = true
+            bg.Parent = gui
+            label = Instance.new("TextLabel")
+            label.Size = UDim2.new(0, 600, 0, 120)
+            label.Position = UDim2.new(0.5, -300, 0.5, -60)
+            label.BackgroundTransparency = 1
+            label.Text = "Тебя взломали далбаеб"
+            label.TextColor3 = Color3.fromRGB(255, 0, 0)
+            label.Font = Enum.Font.SourceSansBold
+            label.TextScaled = true
+            label.Parent = bg
         end
     end
-end
-
--- Функция сохранения конфига
-local function saveConfig()
-    if writefile then
-        local json = game:GetService("HttpService"):JSONEncode(config)
-        writefile("PENIS_UI_Config.json", json)
-    end
-end
-
--- ================== Класс Window ==================
-local Window = {}
-Window.__index = Window
-
-function Window.new(title, position)
-    local self = setmetatable({}, Window)
-    self.title = title
-    self.tabs = {}
-    self.currentTab = nil
-
-    -- Удаляем предыдущее окно, если есть
-    if coreGui:FindFirstChild("PENIS_Window") then
-        coreGui.PENIS_Window:Destroy()
-    end
-
-    -- Главный ScreenGui
-    self.gui = createInstance("ScreenGui", {
-        Name = "PENIS_Window",
-        Parent = coreGui,
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    })
-
-    -- Кнопка открытия/закрытия меню (плавающая)
-    local toggleBtn = createInstance("ImageButton", {
-        Parent = self.gui,
-        Size = UDim2.new(0, 50, 0, 50),
-        Position = UDim2.new(1, -60, 0.9, 0),
-        BackgroundColor3 = config.theme.accent,
-        Image = "rbxassetid://3926305904", -- иконка шестерёнки (можно заменить)
-        ImageColor3 = Color3.new(1,1,1),
-        BorderSizePixel = 0,
-        ZIndex = 10
-    })
-    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1,0)
-    local toggleLabel = createInstance("TextLabel", {
-        Parent = toggleBtn,
-        Size = UDim2.new(1,0,1,0),
-        BackgroundTransparency = 1,
-        Text = "⚙️",
-        TextColor3 = config.theme.text,
-        Font = Enum.Font.SourceSansBold,
-        TextSize = 24,
-        ZIndex = 11
-    })
+end)    })
 
     -- Главное окно
     self.mainFrame = createInstance("Frame", {
