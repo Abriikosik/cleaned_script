@@ -1,147 +1,129 @@
--- LocalScript в StarterPlayerScripts
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
--- ScreenGui
+-- Настройки
+local LAUNCH_POWER = 50
+
+-- Создаём GUI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MommyNeksis"
+screenGui.Name = "LaunchGui"
 screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.Parent = LocalPlayer.PlayerGui
+screenGui.Parent = playerGui
 
--- Main Frame
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 280, 0, 400)
-mainFrame.Position = UDim2.new(0.5, -140, 0.5, -200)
-mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true
-mainFrame.Parent = screenGui
+-- Фрейм для списка игроков
+local frame = Instance.new("Frame")
+frame.Name = "PlayerListFrame"
+frame.Size = UDim2.new(0, 200, 0, 300)
+frame.Position = UDim2.new(0, 10, 0, 10)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderColor3 = Color3.fromRGB(100, 100, 100)
+frame.Parent = screenGui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = mainFrame
+-- Заголовок
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Text = "Выбери игрока"
+title.TextSize = 16
+title.Font = Enum.Font.GothamBold
+title.Parent = frame
 
--- Gradient на фрейме
-local gradient = Instance.new("UIGradient")
-gradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 10, 40)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 20, 50))
-})
-gradient.Rotation = 135
-gradient.Parent = mainFrame
+-- ScrollingFrame для списка
+local scrollingFrame = Instance.new("ScrollingFrame")
+scrollingFrame.Name = "PlayerScroll"
+scrollingFrame.Size = UDim2.new(1, 0, 1, -30)
+scrollingFrame.Position = UDim2.new(0, 0, 0, 30)
+scrollingFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+scrollingFrame.BorderSizePixel = 0
+scrollingFrame.ScrollBarThickness = 8
+scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollingFrame.Parent = frame
 
--- Stroke (обводка)
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(150, 50, 255)
-stroke.Thickness = 2
-stroke.Parent = mainFrame
+-- Функция для броска
+local function launchPlayer(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character then
+        return
+    end
+    
+    local humanoidRootPart = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then
+        return
+    end
+    
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Velocity = Vector3.new(0, LAUNCH_POWER, 0)
+    bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
+    bodyVelocity.Parent = humanoidRootPart
+    
+    game:GetService("Debris"):AddItem(bodyVelocity, 0.1)
+    
+    print(targetPlayer.Name .. " пущен в воздух!")
+end
 
--- Title Bar
-local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 50)
-titleBar.BackgroundColor3 = Color3.fromRGB(100, 30, 200)
-titleBar.BorderSizePixel = 0
-titleBar.Parent = mainFrame
+-- Функция для обновления списка игроков
+local function refreshPlayerList()
+    -- Очищаем старый список
+    for _, button in pairs(scrollingFrame:GetChildren()) do
+        button:Destroy()
+    end
+    
+    local yOffset = 0
+    
+    for _, otherPlayer in pairs(Players:GetPlayers()) do
+        if otherPlayer ~= player then
+            -- Создаём кнопку для каждого игрока
+            local playerButton = Instance.new("TextButton")
+            playerButton.Name = otherPlayer.Name
+            playerButton.Size = UDim2.new(1, -5, 0, 35)
+            playerButton.Position = UDim2.new(0, 2, 0, yOffset)
+            playerButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            playerButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            playerButton.Text = otherPlayer.Name
+            playerButton.TextSize = 14
+            playerButton.Font = Enum.Font.Gotham
+            playerButton.BorderSizePixel = 0
+            playerButton.Parent = scrollingFrame
+            
+            -- Обработка клика на кнопку
+            playerButton.MouseButton1Click:Connect(function()
+                launchPlayer(otherPlayer)
+                playerButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+                wait(0.3)
+                playerButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            end)
+            
+            -- Эффект при наведении
+            playerButton.MouseEnter:Connect(function()
+                playerButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+            end)
+            
+            playerButton.MouseLeave:Connect(function()
+                playerButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            end)
+            
+            yOffset = yOffset + 40
+        end
+    end
+    
+    -- Обновляем размер канваса
+    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, yOffset)
+end
 
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 12)
-titleCorner.Parent = titleBar
-
-local titleGrad = Instance.new("UIGradient")
-titleGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(150, 50, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 20, 180))
-})
-titleGrad.Rotation = 90
-titleGrad.Parent = titleBar
-
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -50, 1, 0)
-titleLabel.Position = UDim2.new(0, 15, 0, 0)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "✦ MommyNeksis ✦"
-titleLabel.TextColor3 = Color3.new(1, 1, 1)
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 16
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = titleBar
-
--- Кнопка закрыть
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -40, 0.5, -15)
-closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 80)
-closeBtn.Text = "✕"
-closeBtn.TextColor3 = Color3.new(1, 1, 1)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 14
-closeBtn.BorderSizePixel = 0
-closeBtn.Parent = titleBar
-
-local closeBtnCorner = Instance.new("UICorner")
-closeBtnCorner.CornerRadius = UDim.new(0, 6)
-closeBtnCorner.Parent = closeBtn
-
-closeBtn.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
+-- Обновляем список при входе/выходе игрока
+Players.PlayerAdded:Connect(function()
+    refreshPlayerList()
 end)
 
--- Subtitle
-local subtitle = Instance.new("TextLabel")
-subtitle.Size = UDim2.new(1, -20, 0, 25)
-subtitle.Position = UDim2.new(0, 10, 0, 58)
-subtitle.BackgroundTransparency = 1
-subtitle.Text = "Выбери игрока:"
-subtitle.TextColor3 = Color3.fromRGB(180, 130, 255)
-subtitle.Font = Enum.Font.Gotham
-subtitle.TextSize = 13
-subtitle.TextXAlignment = Enum.TextXAlignment.Left
-subtitle.Parent = mainFrame
+Players.PlayerRemoving:Connect(function()
+    refreshPlayerList()
+end)
 
--- ScrollFrame для игроков
-local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -20, 0, 200)
-scrollFrame.Position = UDim2.new(0, 10, 0, 88)
-scrollFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
-scrollFrame.BorderSizePixel = 0
-scrollFrame.ScrollBarThickness = 4
-scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(120, 40, 200)
-scrollFrame.Parent = mainFrame
-
-local scrollCorner = Instance.new("UICorner")
-scrollCorner.CornerRadius = UDim.new(0, 8)
-scrollCorner.Parent = scrollFrame
-
-local listLayout = Instance.new("UIListLayout")
-listLayout.Padding = UDim.new(0, 6)
-listLayout.Parent = scrollFrame
-
-local listPadding = Instance.new("UIPadding")
-listPadding.PaddingTop = UDim.new(0, 6)
-listPadding.PaddingLeft = UDim.new(0, 6)
-listPadding.PaddingRight = UDim.new(0, 6)
-listPadding.Parent = scrollFrame
-
--- Divider
-local divider = Instance.new("Frame")
-divider.Size = UDim2.new(1, -20, 0, 2)
-divider.Position = UDim2.new(0, 10, 0, 300)
-divider.BackgroundColor3 = Color3.fromRGB(100, 50, 200)
-divider.BorderSizePixel = 0
-divider.Parent = mainFrame
-
--- Секция действий
-local actionsLabel = Instance.new("TextLabel")
-actionsLabel.Size = UDim2.new(1, -20, 0, 25)
-actionsLabel.Position = UDim2.new(0, 10, 0, 308)
-actionsLabel.BackgroundTransparency = 1
-actionsLabel.Text = "Действия:"
-actionsLabel.TextColor3 = Color3.fromRGB(180, 130, 255)
-actionsLabel.Font = Enum.Font.Gotham
-actionsLabel.TextSize = 13
+-- Первоначальное обновление
+refreshPlayerList()actionsLabel.TextSize = 13
 actionsLabel.TextXAlignment = Enum.TextXAlignment.Left
 actionsLabel.Parent = mainFrame
 
