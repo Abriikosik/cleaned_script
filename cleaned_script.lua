@@ -1,4 +1,4 @@
--- LocalScript (StarterPlayerScripts или StarterGui)
+-- LocalScript → StarterPlayerScripts
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -7,14 +7,12 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- // GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "Menu"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = playerGui
 
--- // Главный фрейм
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 300, 0, 400)
@@ -23,29 +21,21 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
 
--- Скругление
-local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0, 8)
-Corner.Parent = MainFrame
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
--- Обводка
 local Stroke = Instance.new("UIStroke")
 Stroke.Color = Color3.fromRGB(0, 200, 255)
 Stroke.Thickness = 1.5
 Stroke.Parent = MainFrame
 
--- // Шапка
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1, 0, 0, 40)
 TopBar.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
 TopBar.BorderSizePixel = 0
 TopBar.Parent = MainFrame
 
-local TopCorner = Instance.new("UICorner")
-TopCorner.CornerRadius = UDim.new(0, 8)
-TopCorner.Parent = TopBar
+Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
 
--- Фикс нижних углов шапки
 local TopFix = Instance.new("Frame")
 TopFix.Size = UDim2.new(1, 0, 0.5, 0)
 TopFix.Position = UDim2.new(0, 0, 0.5, 0)
@@ -64,7 +54,6 @@ TitleLabel.Font = Enum.Font.GothamBold
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 TitleLabel.Parent = TopBar
 
--- // Кнопка закрыть
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(1, -35, 0, 5)
@@ -75,12 +64,8 @@ CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextScaled = true
 CloseBtn.BorderSizePixel = 0
 CloseBtn.Parent = TopBar
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 6)
-CloseCorner.Parent = CloseBtn
-
--- // Список кнопок
 local ScrollFrame = Instance.new("ScrollingFrame")
 ScrollFrame.Size = UDim2.new(1, -20, 1, -60)
 ScrollFrame.Position = UDim2.new(0, 10, 0, 50)
@@ -96,11 +81,115 @@ ListLayout.Padding = UDim.new(0, 8)
 ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 ListLayout.Parent = ScrollFrame
 
--- Авто-высота канваса
 ListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y + 10)
+	ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y + 10)
 end)
 
+local function CreateButton(name, icon, callback)
+	local Btn = Instance.new("TextButton")
+	Btn.Size = UDim2.new(1, 0, 0, 45)
+	Btn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+	Btn.BorderSizePixel = 0
+	Btn.Text = ""
+	Btn.AutoButtonColor = false
+	Btn.Parent = ScrollFrame
+
+	Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
+
+	local BtnStroke = Instance.new("UIStroke")
+	BtnStroke.Color = Color3.fromRGB(30, 30, 50)
+	BtnStroke.Thickness = 1
+	BtnStroke.Parent = Btn
+
+	local IconLabel = Instance.new("TextLabel")
+	IconLabel.Size = UDim2.new(0, 35, 1, 0)
+	IconLabel.Position = UDim2.new(0, 8, 0, 0)
+	IconLabel.BackgroundTransparency = 1
+	IconLabel.Text = icon
+	IconLabel.TextScaled = true
+	IconLabel.Font = Enum.Font.GothamBold
+	IconLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+	IconLabel.Parent = Btn
+
+	local NameLabel = Instance.new("TextLabel")
+	NameLabel.Size = UDim2.new(1, -55, 1, 0)
+	NameLabel.Position = UDim2.new(0, 48, 0, 0)
+	NameLabel.BackgroundTransparency = 1
+	NameLabel.Text = name
+	NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	NameLabel.TextScaled = true
+	NameLabel.Font = Enum.Font.Gotham
+	NameLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+	NameLabel.Parent = Btn
+
+	Btn.MouseEnter:Connect(function()
+		TweenService:Create(Btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(0, 80, 120)}):Play()
+		TweenService:Create(BtnStroke, TweenInfo.new(0.15), {Color = Color3.fromRGB(0, 200, 255)}):Play()
+	end)
+
+	Btn.MouseLeave:Connect(function()
+		TweenService:Create(Btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(20, 20, 30)}):Play()
+		TweenService:Create(BtnStroke, TweenInfo.new(0.15), {Color = Color3.fromRGB(30, 30, 50)}):Play()
+	end)
+
+	Btn.MouseButton1Click:Connect(function()
+		TweenService:Create(Btn, TweenInfo.new(0.05), {BackgroundColor3 = Color3.fromRGB(0, 200, 255)}):Play()
+		task.delay(0.1, function()
+			TweenService:Create(Btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(0, 80, 120)}):Play()
+		end)
+		if callback then callback() end
+	end)
+end
+
+-- // Кнопки
+CreateButton("Нет реакции", "👻", function() print("[ GHOST ] в разработке") end)
+CreateButton("ESP",         "👁",  function() print("[ ESP ] в разработке")   end)
+CreateButton("Speed Hack",  "⚡",  function() print("[ SPEED ] в разработке") end)
+CreateButton("Fly",         "🛸",  function() print("[ FLY ] в разработке")   end)
+CreateButton("Aimbot",      "🎯",  function() print("[ AIM ] в разработке")   end)
+CreateButton("Teleport",    "🌀",  function() print("[ TP ] в разработке")    end)
+CreateButton("Anti-AFK",    "🔄",  function() print("[ AFK ] в разработке")   end)
+
+-- // Закрыть кнопкой ✕
+CloseBtn.MouseButton1Click:Connect(function()
+	MainFrame.Visible = false
+end)
+
+-- // ФИХ ХОТКЕЯ — без gpe, RightControl вместо Insert
+UserInputService.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.RightControl then
+		MainFrame.Visible = not MainFrame.Visible
+	end
+end)
+
+-- // Drag
+local dragging, dragStart, startPos
+
+TopBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = MainFrame.Position
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		MainFrame.Position = UDim2.new(
+			startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+print("[ GHOST MENU ] Загружено! RightControl — показать/скрыть")
 -- // Функция создания кнопки
 local function CreateButton(name, icon, callback)
     local Btn = Instance.new("TextButton")
