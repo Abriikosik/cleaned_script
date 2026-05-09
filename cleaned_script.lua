@@ -1,106 +1,310 @@
--- LocalScript → StarterPlayerScripts
+-- Minimalist Roblox Menu | Fly + Noclip
+-- Works with most executors (e.g. Synapse, KRNL, Fluxus)
 
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local camera = workspace.CurrentCamera
 
+-- ══════════════════════════════
+--         STATE
+-- ══════════════════════════════
+local flyEnabled   = false
+local noclipEnabled = false
+local flySpeed     = 50
+local flyConn, noclipConn
+
+-- ══════════════════════════════
+--         GUI
+-- ══════════════════════════════
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Menu"
+ScreenGui.Name = "MinimalMenu"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = playerGui
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 300, 0, 400)
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
+-- Main Frame
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 260, 0, 320)
+Frame.Position = UDim2.new(0.5, -130, 0.5, -160)
+Frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true -- PC drag
+Frame.Parent = ScreenGui
 
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
 
-local Stroke = Instance.new("UIStroke")
-Stroke.Color = Color3.fromRGB(0, 200, 255)
-Stroke.Thickness = 1.5
-Stroke.Parent = MainFrame
+-- Title
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "✦  MENU"
+Title.TextColor3 = Color3.fromRGB(240, 240, 240)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 15
+Title.Parent = Frame
 
-local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1, 0, 0, 40)
-TopBar.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-TopBar.BorderSizePixel = 0
-TopBar.Parent = MainFrame
+-- Divider
+local Divider = Instance.new("Frame")
+Divider.Size = UDim2.new(0.85, 0, 0, 1)
+Divider.Position = UDim2.new(0.075, 0, 0, 42)
+Divider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Divider.BorderSizePixel = 0
+Divider.Parent = Frame
 
-Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
+-- ── Helper: Create Toggle Button ──
+local function createToggle(labelText, yPos, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.85, 0, 0, 42)
+    btn.Position = UDim2.new(0.075, 0, 0, yPos)
+    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    btn.BorderSizePixel = 0
+    btn.Text = ""
+    btn.Parent = Frame
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
 
-local TopFix = Instance.new("Frame")
-TopFix.Size = UDim2.new(1, 0, 0.5, 0)
-TopFix.Position = UDim2.new(0, 0, 0.5, 0)
-TopFix.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-TopFix.BorderSizePixel = 0
-TopFix.Parent = TopBar
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.6, 0, 1, 0)
+    label.Position = UDim2.new(0.05, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = labelText
+    label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = btn
 
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Size = UDim2.new(1, -10, 1, 0)
-TitleLabel.Position = UDim2.new(0, 10, 0, 0)
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "⚡ GHOST MENU v1.0"
-TitleLabel.TextColor3 = Color3.fromRGB(5, 5, 10)
-TitleLabel.TextScaled = true
-TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-TitleLabel.Parent = TopBar
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.new(0, 36, 0, 20)
+    dot.Position = UDim2.new(1, -46, 0.5, -10)
+    dot.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    dot.BorderSizePixel = 0
+    dot.Parent = btn
+    Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
 
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0, 5)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
-CloseBtn.Text = "✕"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextScaled = true
-CloseBtn.BorderSizePixel = 0
-CloseBtn.Parent = TopBar
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 14, 0, 14)
+    knob.Position = UDim2.new(0, 3, 0.5, -7)
+    knob.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
+    knob.BorderSizePixel = 0
+    knob.Parent = dot
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
 
-local ScrollFrame = Instance.new("ScrollingFrame")
-ScrollFrame.Size = UDim2.new(1, -20, 1, -60)
-ScrollFrame.Position = UDim2.new(0, 10, 0, 50)
-ScrollFrame.BackgroundTransparency = 1
-ScrollFrame.BorderSizePixel = 0
-ScrollFrame.ScrollBarThickness = 3
-ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 200, 255)
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-ScrollFrame.Parent = MainFrame
+    local active = false
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        local goal = active
+            and {BackgroundColor3 = Color3.fromRGB(100, 200, 120)}
+            or  {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}
+        local knobGoal = active
+            and {Position = UDim2.new(0, 19, 0.5, -7), BackgroundColor3 = Color3.fromRGB(255,255,255)}
+            or  {Position = UDim2.new(0,  3, 0.5, -7), BackgroundColor3 = Color3.fromRGB(180,180,180)}
+        TweenService:Create(dot,  TweenInfo.new(0.2), goal):Play()
+        TweenService:Create(knob, TweenInfo.new(0.2), knobGoal):Play()
+        callback(active)
+    end)
+    return btn
+end
 
-local ListLayout = Instance.new("UIListLayout")
-ListLayout.Padding = UDim.new(0, 8)
-ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-ListLayout.Parent = ScrollFrame
+-- ── Fly Toggle ──
+createToggle("✈  Fly", 58, function(state)
+    flyEnabled = state
+    if state then
+        local char = player.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum then return end
+        hum.PlatformStand = true
 
-ListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y + 10)
+        local bg = Instance.new("BodyGyro", hrp)
+        bg.MaxTorque = Vector3.new(1e5,1e5,1e5)
+        bg.P = 1e4
+
+        local bv = Instance.new("BodyVelocity", hrp)
+        bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+        bv.Velocity = Vector3.zero
+
+        flyConn = RunService.Heartbeat:Connect(function()
+            if not flyEnabled then return end
+            local move = Vector3.zero
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                move = move + camera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                move = move - camera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                move = move - camera.CFrame.RightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                move = move + camera.CFrame.RightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                move = move + Vector3.new(0,1,0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+                move = move - Vector3.new(0,1,0)
+            end
+            bv.Velocity = move.Magnitude > 0 and move.Unit * flySpeed or Vector3.zero
+            bg.CFrame = camera.CFrame
+        end)
+    else
+        if flyConn then flyConn:Disconnect() end
+        local char = player.Character
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local bg = hrp:FindFirstChildOfClass("BodyGyro")
+                local bv = hrp:FindFirstChildOfClass("BodyVelocity")
+                if bg then bg:Destroy() end
+                if bv then bv:Destroy() end
+            end
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then hum.PlatformStand = false end
+        end
+    end
 end)
 
-local function CreateButton(name, icon, callback)
-	local Btn = Instance.new("TextButton")
-	Btn.Size = UDim2.new(1, 0, 0, 45)
-	Btn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-	Btn.BorderSizePixel = 0
-	Btn.Text = ""
-	Btn.AutoButtonColor = false
-	Btn.Parent = ScrollFrame
+-- ── Speed Slider Label ──
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(0.85, 0, 0, 20)
+speedLabel.Position = UDim2.new(0.075, 0, 0, 110)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "Fly Speed: " .. flySpeed
+speedLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.TextSize = 12
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.Parent = Frame
 
-	Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
+-- ── Slider Track ──
+local sliderTrack = Instance.new("Frame")
+sliderTrack.Size = UDim2.new(0.85, 0, 0, 6)
+sliderTrack.Position = UDim2.new(0.075, 0, 0, 136)
+sliderTrack.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+sliderTrack.BorderSizePixel = 0
+sliderTrack.Parent = Frame
+Instance.new("UICorner", sliderTrack).CornerRadius = UDim.new(1, 0)
 
-	local BtnStroke = Instance.new("UIStroke")
-	BtnStroke.Color = Color3.fromRGB(30, 30, 50)
-	BtnStroke.Thickness = 1
-	BtnStroke.Parent = Btn
+local sliderFill = Instance.new("Frame")
+sliderFill.Size = UDim2.new(flySpeed/500, 0, 1, 0)
+sliderFill.BackgroundColor3 = Color3.fromRGB(100, 200, 120)
+sliderFill.BorderSizePixel = 0
+sliderFill.Parent = sliderTrack
+Instance.new("UICorner", sliderFill).CornerRadius = UDim.new(1, 0)
 
+local sliderKnob = Instance.new("TextButton")
+sliderKnob.Size = UDim2.new(0, 18, 0, 18)
+sliderKnob.Position = UDim2.new(flySpeed/500, -9, 0.5, -9)
+sliderKnob.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
+sliderKnob.Text = ""
+sliderKnob.BorderSizePixel = 0
+sliderKnob.Parent = sliderTrack
+Instance.new("UICorner", sliderKnob).CornerRadius = UDim.new(1, 0)
+
+-- Slider drag logic (PC + Mobile)
+local dragging = false
+local function updateSlider(inputPos)
+    local absPos = sliderTrack.AbsolutePosition
+    local absSize = sliderTrack.AbsoluteSize
+    local rel = math.clamp((inputPos.X - absPos.X) / absSize.X, 0, 1)
+    flySpeed = math.floor(rel * 500)
+    speedLabel.Text = "Fly Speed: " .. flySpeed
+    sliderFill.Size = UDim2.new(rel, 0, 1, 0)
+    sliderKnob.Position = UDim2.new(rel, -9, 0.5, -9)
+end
+
+sliderKnob.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch) then
+        updateSlider(input.Position)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+-- ── Noclip Toggle ──
+createToggle("👻  Noclip", 160, function(state)
+    noclipEnabled = state
+    if state then
+        noclipConn = RunService.Stepped:Connect(function()
+            local char = player.Character
+            if not char then return end
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end)
+    else
+        if noclipConn then noclipConn:Disconnect() end
+        local char = player.Character
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end)
+
+-- ── Close Button ──
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0.85, 0, 0, 38)
+closeBtn.Position = UDim2.new(0.075, 0, 0, 262)
+closeBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+closeBtn.BorderSizePixel = 0
+closeBtn.Text = "✕  Close"
+closeBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+closeBtn.Font = Enum.Font.Gotham
+closeBtn.TextSize = 13
+closeBtn.Parent = Frame
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
+closeBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- ══════════════════════════════
+--   MOBILE: drag Frame by touch
+-- ══════════════════════════════
+local touchStart, frameStart
+Frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        touchStart = input.Position
+        frameStart = Frame.Position
+    end
+end)
+Frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch and touchStart then
+        local delta = input.Position - touchStart
+        Frame.Position = UDim2.new(
+            frameStart.X.Scale, frameStart.X.Offset + delta.X,
+            frameStart.Y.Scale, frameStart.Y.Offset + delta.Y
+        )
+    end
+end)
+Frame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        touchStart = nil
+    end
+end)
 	local IconLabel = Instance.new("TextLabel")
 	IconLabel.Size = UDim2.new(0, 35, 1, 0)
 	IconLabel.Position = UDim2.new(0, 8, 0, 0)
