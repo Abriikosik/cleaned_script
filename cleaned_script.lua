@@ -1,106 +1,539 @@
--- ══════════════════════════════════════════════════════
---   MINIMAL MENU | Fly + Noclip + Магнит + Авто-урон
---   Iron Soul Dungeon | PC + Mobile | FIXED
--- ══════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════
+--   ROBLOX MENU SCRIPT  |  LocalScript
+--   Features: Fly, Noclip, Nodelay
+--   Info:     Nickname, UserId, Ping, FPS
+--   Size:     1024 x 1024 px
+-- ═══════════════════════════════════════════════
 
-local Players          = game:GetService("Players")
-local RunService       = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local TweenService     = game:GetService("TweenService")
+local Players         = game:GetService("Players")
+local RunService      = game:GetService("RunService")
+local UserInputService= game:GetService("UserInputService")
+local TweenService    = game:GetService("TweenService")
+local Stats           = game:GetService("Stats")
 
-local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui")
 
-local flyEnabled    = false
-local noclipEnabled = false
-local magnetEnabled = false
-local flySpeed      = 50
-local magnetRadius  = 50
-local flyConn, noclipConn, magnetConn, autoHitConn
+local isFlyEnabled     = false
+local isNoclipEnabled  = false
+local isNodelayEnabled = false
+local FlySpeed         = 100
+local flyBodyVelocity  = nil
+local flyBodyGyro      = nil
+local nodelayConns     = {}
+local noclipConn       = nil
+local menuOpen         = true
+
+-- ── Helpers ──────────────────────────────────────────────────────────────────
+
+local function getCharParts()
+    local char   = LocalPlayer.Character
+    if not char then return nil, nil, nil end
+    local hrp    = char:FindFirstChild("HumanoidRootPart")
+    local hum    = char:FindFirstChildOfClass("Humanoid")
+    return char, hrp, hum
+end
+
+-- ── GUI Build ─────────────────────────────────────────────────────────────────
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MinimalMenu"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
+ScreenGui.Name            = "CustomMenu"
+ScreenGui.ResetOnSpawn    = false
+ScreenGui.ZIndexBehavior  = Enum.ZIndexBehavior.Sibling
+ScreenGui.IgnoreGuiInset  = true
+ScreenGui.Parent          = PlayerGui
 
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 260, 0, 510)
-Frame.Position = UDim2.new(0.5, -130, 0.5, -255)
-Frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Frame.BorderSizePixel = 0
-Frame.Active = true
-Frame.Draggable = true
-Frame.Parent = ScreenGui
-Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
+-- Toggle button (always visible)
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size            = UDim2.new(0, 80, 0, 32)
+ToggleBtn.Position        = UDim2.new(0, 12, 0, 12)
+ToggleBtn.BackgroundColor3= Color3.fromRGB(25, 25, 35)
+ToggleBtn.TextColor3      = Color3.fromRGB(0, 200, 255)
+ToggleBtn.Text            = "[ MENU ]"
+ToggleBtn.Font            = Enum.Font.Code
+ToggleBtn.TextSize        = 14
+ToggleBtn.BorderSizePixel = 0
+ToggleBtn.ZIndex          = 10
+ToggleBtn.Parent          = ScreenGui
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundTransparency = 1
-Title.Text = "✦  MENU"
-Title.TextColor3 = Color3.fromRGB(240, 240, 240)
-Title.Font = Enum.Font.ArialBold  -- ИСПРАВЛЕНО
-Title.TextSize = 15
-Title.Parent = Frame
+-- Main frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name            = "MainFrame"
+MainFrame.Size            = UDim2.new(0, 1024, 0, 1024)
+MainFrame.Position        = UDim2.new(0.5, -512, 0.5, -512)
+MainFrame.BackgroundColor3= Color3.fromRGB(13, 13, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants= true
+MainFrame.Parent          = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 14)
 
-local Divider = Instance.new("Frame")
-Divider.Size = UDim2.new(0.85, 0, 0, 1)
-Divider.Position = UDim2.new(0.075, 0, 0, 42)
-Divider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-Divider.BorderSizePixel = 0
-Divider.Parent = Frame
+-- Title bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Size             = UDim2.new(1, 0, 0, 56)
+TitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 32)
+TitleBar.BorderSizePixel  = 0
+TitleBar.Parent           = MainFrame
 
-local function createToggle(labelText, yPos, callback)
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size           = UDim2.new(1, -70, 1, 0)
+TitleLabel.Position       = UDim2.new(0, 18, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text           = "⚡  MENU  |  Roblox"
+TitleLabel.Font           = Enum.Font.Code
+TitleLabel.TextSize       = 20
+TitleLabel.TextColor3     = Color3.fromRGB(0, 200, 255)
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent         = TitleBar
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size             = UDim2.new(0, 40, 0, 40)
+CloseBtn.Position         = UDim2.new(1, -50, 0.5, -20)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.Text             = "✕"
+CloseBtn.Font             = Enum.Font.Code
+CloseBtn.TextSize         = 18
+CloseBtn.TextColor3       = Color3.fromRGB(255, 255, 255)
+CloseBtn.BorderSizePixel  = 0
+CloseBtn.Parent           = TitleBar
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 8)
+
+-- ── Info Panel ────────────────────────────────────────────────────────────────
+
+local InfoPanel = Instance.new("Frame")
+InfoPanel.Size            = UDim2.new(1, -40, 0, 180)
+InfoPanel.Position        = UDim2.new(0, 20, 0, 70)
+InfoPanel.BackgroundColor3= Color3.fromRGB(18, 18, 28)
+InfoPanel.BorderSizePixel = 0
+InfoPanel.Parent          = MainFrame
+Instance.new("UICorner", InfoPanel).CornerRadius = UDim.new(0, 10)
+
+local function makeInfoRow(parent, labelText, yOffset)
+    local row = Instance.new("Frame")
+    row.Size              = UDim2.new(1, -24, 0, 34)
+    row.Position          = UDim2.new(0, 12, 0, yOffset)
+    row.BackgroundTransparency = 1
+    row.Parent            = parent
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size              = UDim2.new(0, 220, 1, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text              = labelText
+    lbl.Font              = Enum.Font.Code
+    lbl.TextSize          = 15
+    lbl.TextColor3        = Color3.fromRGB(120, 130, 160)
+    lbl.TextXAlignment    = Enum.TextXAlignment.Left
+    lbl.Parent            = row
+
+    local val = Instance.new("TextLabel")
+    val.Size              = UDim2.new(1, -230, 1, 0)
+    val.Position          = UDim2.new(0, 230, 0, 0)
+    val.BackgroundTransparency = 1
+    val.Text              = "..."
+    val.Font              = Enum.Font.Code
+    val.TextSize          = 15
+    val.TextColor3        = Color3.fromRGB(0, 200, 255)
+    val.TextXAlignment    = Enum.TextXAlignment.Left
+    val.Parent            = row
+
+    return val
+end
+
+local ValNick    = makeInfoRow(InfoPanel, "  Никнейм",    8)
+local ValUserId  = makeInfoRow(InfoPanel, "  UserId",    42)
+local ValPing    = makeInfoRow(InfoPanel, "  Ping",      76)
+local ValFPS     = makeInfoRow(InfoPanel, "  FPS",      110)
+local ValAge     = makeInfoRow(InfoPanel, "  Дней в игре",144)
+
+-- Fill static info immediately
+ValNick.Text   = LocalPlayer.Name
+ValUserId.Text = tostring(LocalPlayer.UserId)
+ValAge.Text    = tostring(LocalPlayer.AccountAge) .. " дн."
+
+-- ── Feature Buttons Helper ────────────────────────────────────────────────────
+
+local function makeToggleButton(parent, label, posY)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.85, 0, 0, 42)
-    btn.Position = UDim2.new(0.075, 0, 0, yPos)
-    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    btn.BorderSizePixel = 0
-    btn.Text = ""
-    btn.Parent = Frame
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    btn.Size              = UDim2.new(1, -40, 0, 56)
+    btn.Position          = UDim2.new(0, 20, 0, posY)
+    btn.BackgroundColor3  = Color3.fromRGB(22, 22, 35)
+    btn.Text              = label .. "   [ OFF ]"
+    btn.Font              = Enum.Font.Code
+    btn.TextSize          = 17
+    btn.TextColor3        = Color3.fromRGB(160, 160, 200)
+    btn.TextXAlignment    = Enum.TextXAlignment.Left
+    btn.BorderSizePixel   = 0
+    btn.Parent            = parent
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
 
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.6, 0, 1, 0)
-    label.Position = UDim2.new(0.05, 0, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = labelText
-    label.TextColor3 = Color3.fromRGB(200, 200, 200)
-    label.Font = Enum.Font.Arial  -- ИСПРАВЛЕНО
-    label.TextSize = 13
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = btn
+    local stripe = Instance.new("Frame")
+    stripe.Size           = UDim2.new(0, 4, 1, -12)
+    stripe.Position       = UDim2.new(1, -20, 0, 6)
+    stripe.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    stripe.BorderSizePixel= 0
+    stripe.Parent         = btn
+    Instance.new("UICorner", stripe).CornerRadius = UDim.new(0, 2)
 
-    local dot = Instance.new("Frame")
-    dot.Size = UDim2.new(0, 36, 0, 20)
-    dot.Position = UDim2.new(1, -46, 0.5, -10)
-    dot.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    dot.BorderSizePixel = 0
-    dot.Parent = btn
-    Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+    return btn, stripe
+end
 
-    local knob = Instance.new("Frame")
-    knob.Size = UDim2.new(0, 14, 0, 14)
-    knob.Position = UDim2.new(0, 3, 0.5, -7)
-    knob.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
-    knob.BorderSizePixel = 0
-    knob.Parent = dot
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+-- ── Fly Section ───────────────────────────────────────────────────────────────
 
-    local active = false
-    btn.MouseButton1Click:Connect(function()
-        active = not active
-        local dGoal = active
-            and {BackgroundColor3 = Color3.fromRGB(100, 200, 120)}
-            or  {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}
-        local kGoal = active
-            and {Position = UDim2.new(0, 19, 0.5, -7), BackgroundColor3 = Color3.fromRGB(255,255,255)}
-            or  {Position = UDim2.new(0,  3, 0.5, -7), BackgroundColor3 = Color3.fromRGB(180,180,180)}
-        TweenService:Create(dot,  TweenInfo.new(0.2), dGoal):Play()
-        TweenService:Create(knob, TweenInfo.new(0.2), kGoal):Play()
-        callback(active)
+local FlyBtn, FlyStripe = makeToggleButton(MainFrame, "✈  Fly", 270)
+
+-- Speed slider
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Size           = UDim2.new(1, -40, 0, 28)
+SpeedLabel.Position       = UDim2.new(0, 20, 0, 340)
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Text           = "Скорость Fly:  100  (0 — 6767)"
+SpeedLabel.Font           = Enum.Font.Code
+SpeedLabel.TextSize       = 14
+SpeedLabel.TextColor3     = Color3.fromRGB(100, 110, 150)
+SpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
+SpeedLabel.Parent         = MainFrame
+
+local SliderBg = Instance.new("Frame")
+SliderBg.Size             = UDim2.new(1, -40, 0, 10)
+SliderBg.Position         = UDim2.new(0, 20, 0, 374)
+SliderBg.BackgroundColor3 = Color3.fromRGB(30, 30, 46)
+SliderBg.BorderSizePixel  = 0
+SliderBg.Parent           = MainFrame
+Instance.new("UICorner", SliderBg).CornerRadius = UDim.new(0, 5)
+
+local SliderFill = Instance.new("Frame")
+SliderFill.Size           = UDim2.new(FlySpeed / 6767, 0, 1, 0)
+SliderFill.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+SliderFill.BorderSizePixel= 0
+SliderFill.Parent         = SliderBg
+Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(0, 5)
+
+local SliderThumb = Instance.new("TextButton")
+SliderThumb.Size          = UDim2.new(0, 22, 0, 22)
+SliderThumb.AnchorPoint   = Vector2.new(0.5, 0.5)
+SliderThumb.Position      = UDim2.new(FlySpeed / 6767, 0, 0.5, 0)
+SliderThumb.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+SliderThumb.Text          = ""
+SliderThumb.BorderSizePixel= 0
+SliderThumb.ZIndex        = 2
+SliderThumb.Parent        = SliderBg
+Instance.new("UICorner", SliderThumb).CornerRadius = UDim.new(0.5, 0)
+
+-- Slider drag logic
+local dragging = false
+SliderThumb.MouseButton1Down:Connect(function()
+    dragging = true
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+RunService.RenderStepped:Connect(function()
+    if dragging then
+        local mouseX  = UserInputService:GetMouseLocation().X
+        local bgPos   = SliderBg.AbsolutePosition.X
+        local bgWidth = SliderBg.AbsoluteSize.X
+        local ratio   = math.clamp((mouseX - bgPos) / bgWidth, 0, 1)
+        FlySpeed      = math.floor(ratio * 6767)
+        SliderFill.Size     = UDim2.new(ratio, 0, 1, 0)
+        SliderThumb.Position= UDim2.new(ratio, 0, 0.5, 0)
+        SpeedLabel.Text     = "Скорость Fly:  " .. FlySpeed .. "  (0 — 6767)"
+    end
+end)
+
+-- ── Noclip Section ────────────────────────────────────────────────────────────
+
+local NoclipBtn, NoclipStripe = makeToggleButton(MainFrame, "👻  Noclip", 410)
+
+-- ── Nodelay Section ───────────────────────────────────────────────────────────
+
+local NodelayBtn, NodelayStripe = makeToggleButton(MainFrame, "⚡  Nodelay", 482)
+
+local NodelayDesc = Instance.new("TextLabel")
+NodelayDesc.Size          = UDim2.new(1, -40, 0, 30)
+NodelayDesc.Position      = UDim2.new(0, 24, 0, 544)
+NodelayDesc.BackgroundTransparency = 1
+NodelayDesc.Text          = "Все предметы используются без задержки и кулдауна"
+NodelayDesc.Font          = Enum.Font.Code
+NodelayDesc.TextSize      = 13
+NodelayDesc.TextColor3    = Color3.fromRGB(80, 90, 120)
+NodelayDesc.TextXAlignment= Enum.TextXAlignment.Left
+NodelayDesc.Parent        = MainFrame
+
+-- ── Key Hint ─────────────────────────────────────────────────────────────────
+
+local HintLabel = Instance.new("TextLabel")
+HintLabel.Size            = UDim2.new(1, -40, 0, 30)
+HintLabel.Position        = UDim2.new(0, 20, 1, -50)
+HintLabel.BackgroundTransparency = 1
+HintLabel.Text            = "Открыть/закрыть меню: RightShift  |  Закрыть: кнопка ✕"
+HintLabel.Font            = Enum.Font.Code
+HintLabel.TextSize        = 13
+HintLabel.TextColor3      = Color3.fromRGB(60, 70, 100)
+HintLabel.TextXAlignment  = Enum.TextXAlignment.Left
+HintLabel.Parent          = MainFrame
+
+-- ══════════════════════════════════════════════════════════════════════════════
+-- LOGIC
+-- ══════════════════════════════════════════════════════════════════════════════
+
+-- ── Menu Toggle ───────────────────────────────────────────────────────────────
+
+local function toggleMenu(state)
+    menuOpen = state
+    MainFrame.Visible = menuOpen
+    ToggleBtn.Text    = menuOpen and "[ MENU ]" or "[ MENU ]"
+end
+
+CloseBtn.MouseButton1Click:Connect(function() toggleMenu(false) end)
+ToggleBtn.MouseButton1Click:Connect(function() toggleMenu(not menuOpen) end)
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        toggleMenu(not menuOpen)
+    end
+end)
+
+-- ── Fly Logic ─────────────────────────────────────────────────────────────────
+
+local function startFly()
+    local _, hrp, hum = getCharParts()
+    if not hrp or not hum then return end
+
+    hum.PlatformStand = true
+
+    flyBodyGyro = Instance.new("BodyGyro")
+    flyBodyGyro.MaxTorque = Vector3.new(9e8, 9e8, 9e8)
+    flyBodyGyro.P         = 9e4
+    flyBodyGyro.CFrame    = hrp.CFrame
+    flyBodyGyro.Parent    = hrp
+
+    flyBodyVelocity = Instance.new("BodyVelocity")
+    flyBodyVelocity.Velocity   = Vector3.zero
+    flyBodyVelocity.MaxForce   = Vector3.new(9e8, 9e8, 9e8)
+    flyBodyVelocity.P          = 9e4
+    flyBodyVelocity.Parent     = hrp
+end
+
+local function stopFly()
+    local _, hrp, hum = getCharParts()
+    if flyBodyGyro    then flyBodyGyro:Destroy();    flyBodyGyro    = nil end
+    if flyBodyVelocity then flyBodyVelocity:Destroy(); flyBodyVelocity = nil end
+    if hum then hum.PlatformStand = false end
+end
+
+local function updateFly()
+    if not isFlyEnabled or not flyBodyVelocity or not flyBodyGyro then return end
+    local _, hrp, _ = getCharParts()
+    if not hrp then return end
+
+    local cam  = workspace.CurrentCamera
+    local dir  = Vector3.zero
+    local cf   = cam.CFrame
+
+    if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + cf.LookVector  end
+    if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - cf.LookVector  end
+    if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - cf.RightVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + cf.RightVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0, 1, 0) end
+    if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir = dir - Vector3.new(0, 1, 0) end
+
+    flyBodyGyro.CFrame     = cf
+    flyBodyVelocity.Velocity = dir.Magnitude > 0 and (dir.Unit * FlySpeed) or Vector3.zero
+end
+
+FlyBtn.MouseButton1Click:Connect(function()
+    isFlyEnabled = not isFlyEnabled
+    if isFlyEnabled then
+        startFly()
+        FlyBtn.Text          = "✈  Fly   [ ON ]"
+        FlyBtn.TextColor3    = Color3.fromRGB(0, 200, 255)
+        FlyStripe.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+    else
+        stopFly()
+        FlyBtn.Text          = "✈  Fly   [ OFF ]"
+        FlyBtn.TextColor3    = Color3.fromRGB(160, 160, 200)
+        FlyStripe.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    end
+end)
+
+-- ── Noclip Logic ──────────────────────────────────────────────────────────────
+
+local function startNoclip()
+    noclipConn = RunService.Stepped:Connect(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
     end)
-    return btn
+end
+
+local function stopNoclip()
+    if noclipConn then
+        noclipConn:Disconnect()
+        noclipConn = nil
+    end
+    local char = LocalPlayer.Character
+    if char then
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+    end
+end
+
+NoclipBtn.MouseButton1Click:Connect(function()
+    isNoclipEnabled = not isNoclipEnabled
+    if isNoclipEnabled then
+        startNoclip()
+        NoclipBtn.Text        = "👻  Noclip   [ ON ]"
+        NoclipBtn.TextColor3  = Color3.fromRGB(0, 200, 255)
+        NoclipStripe.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+    else
+        stopNoclip()
+        NoclipBtn.Text        = "👻  Noclip   [ OFF ]"
+        NoclipBtn.TextColor3  = Color3.fromRGB(160, 160, 200)
+        NoclipStripe.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    end
+end)
+
+-- ── Nodelay Logic ─────────────────────────────────────────────────────────────
+-- Hooks all Tool objects in the character's backpack and removes ManualActivationOnly
+-- and resets Enabled flag instantly so there is no cooldown between uses.
+
+local function hookTool(tool)
+    -- Remove any existing activation cooldown
+    if tool:IsA("Tool") then
+        tool.ManualActivationOnly = false
+        -- Hook Deactivated to instantly re-enable the tool
+        local conn = tool.Deactivated:Connect(function()
+            if isNodelayEnabled then
+                task.defer(function()
+                    tool.Enabled = true
+                end)
+            end
+        end)
+        table.insert(nodelayConns, conn)
+    end
+end
+
+local function startNodelay()
+    -- Hook current backpack tools
+    local bp = LocalPlayer:FindFirstChildOfClass("Backpack")
+    if bp then
+        for _, t in ipairs(bp:GetChildren()) do hookTool(t) end
+        table.insert(nodelayConns, bp.ChildAdded:Connect(hookTool))
+    end
+    -- Hook equipped tool
+    local char = LocalPlayer.Character
+    if char then
+        for _, t in ipairs(char:GetChildren()) do
+            if t:IsA("Tool") then hookTool(t) end
+        end
+        table.insert(nodelayConns, char.ChildAdded:Connect(function(c)
+            if c:IsA("Tool") then hookTool(c) end
+        end))
+    end
+end
+
+local function stopNodelay()
+    for _, c in ipairs(nodelayConns) do
+        if c and typeof(c) == "RBXScriptConnection" then
+            c:Disconnect()
+        end
+    end
+    nodelayConns = {}
+end
+
+NodelayBtn.MouseButton1Click:Connect(function()
+    isNodelayEnabled = not isNodelayEnabled
+    if isNodelayEnabled then
+        startNodelay()
+        NodelayBtn.Text        = "⚡  Nodelay   [ ON ]"
+        NodelayBtn.TextColor3  = Color3.fromRGB(0, 200, 255)
+        NodelayStripe.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+    else
+        stopNodelay()
+        NodelayBtn.Text        = "⚡  Nodelay   [ OFF ]"
+        NodelayBtn.TextColor3  = Color3.fromRGB(160, 160, 200)
+        NodelayStripe.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+    end
+end)
+
+-- ── Per-frame Update (Ping, FPS, Fly) ────────────────────────────────────────
+
+local lastTime  = tick()
+local frameCount = 0
+local currentFPS = 0
+
+RunService.RenderStepped:Connect(function()
+    -- FPS
+    frameCount = frameCount + 1
+    local now  = tick()
+    if now - lastTime >= 0.5 then
+        currentFPS = math.floor(frameCount / (now - lastTime))
+        frameCount = 0
+        lastTime   = now
+        ValFPS.Text  = tostring(currentFPS) .. " fps"
+    end
+
+    -- Ping
+    ValPing.Text = tostring(math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())) .. " ms"
+
+    -- Fly update
+    updateFly()
+end)
+
+-- ── Character respawn reconnection ───────────────────────────────────────────
+
+LocalPlayer.CharacterAdded:Connect(function()
+    -- Re-enable active features after respawn
+    task.wait(1)
+    if isFlyEnabled  then startFly()     end
+    if isNoclipEnabled then startNoclip() end
+    if isNodelayEnabled then stopNodelay(); startNodelay() end
+end)
+
+-- ── Draggable menu ────────────────────────────────────────────────────────────
+
+local draggingMenu = false
+local dragStart, frameStart
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingMenu = true
+        dragStart    = input.Position
+        frameStart   = MainFrame.Position
+    end
+end)
+
+TitleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingMenu = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if draggingMenu and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(
+            frameStart.X.Scale,
+            frameStart.X.Offset + delta.X,
+            frameStart.Y.Scale,
+            frameStart.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- ═══════════════════════════════════════════════
+-- Script ready.  RightShift = toggle menu.
+-- ═══════════════════════════════════════════════    return btn
 end
 
 local function createSlider(yPos, defaultVal, maxVal, labelPrefix, onChanged)
