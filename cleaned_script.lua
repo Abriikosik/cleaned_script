@@ -1,62 +1,46 @@
--- Iron Soul Analytics - Xeno Telegram Logger
-
-local BOT_TOKEN = "8810860107:AAFmQHlJrIfXDCuu1HFUPytwAMV_-frrAS0"
-local CHAT_ID = "7531409604"
-local UPDATE_INTERVAL = 5
-
-local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LP = Players.LocalPlayer
+-- Краткий Roblox-скрипт для Telegram-лога (Xeno)
+local token = "ТВОЙ_ТОКЕН_БОТА"
+local chat = "ТВОЙ_CHAT_ID"  -- цифры
+local http = game:GetService("HttpService")
+local plr = game.Players.LocalPlayer
 
 local function send(msg)
-    local url = "https://api.telegram.org/bot"..BOT_TOKEN.."/sendMessage"
-    local data = {chat_id = tonumber(CHAT_ID), text = msg, parse_mode = "HTML"}
     pcall(function()
-        HttpService:PostAsync(url, HttpService:JSONEncode(data), Enum.HttpContentType.ApplicationJson)
+        http:PostAsync("https://api.telegram.org/bot"..token.."/sendMessage",
+            http:JSONEncode({chat_id=tonumber(chat), text=msg}),
+            Enum.HttpContentType.ApplicationJson)
     end)
 end
 
-send("✅ Script loaded for "..LP.Name)
+send("✅ Скрипт запущен. Логирую всё.")
 
-local stats = {damageDealt=0, damageReceived=0, start=os.time()}
+-- Логируем нажатия клавиш
+game:GetService("UserInputService").InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        send("🔘 Нажата клавиша: "..input.KeyCode.Name)
+    elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+        send("🖱 ЛКМ")
+    end
+end)
 
--- simple damage hook attempt
-LP.CharacterAdded:Connect(function(char)
+-- Логируем события (пример: взятие предмета)
+plr.Backpack.ChildAdded:Connect(function(tool)
+    send("📦 Взял в инвентарь: "..tool.Name)
+end)
+
+-- Урон и здоровье (коротко)
+plr.CharacterAdded:Connect(function(char)
     local hum = char:WaitForChild("Humanoid")
-    local lastHealth = hum.Health
+    local last = hum.Health
     hum.HealthChanged:Connect(function(h)
-        local diff = lastHealth - h
-        if diff > 0 then stats.damageReceived = stats.damageReceived + diff end
-        lastHealth = h
+        if h < last then send("💔 -"..math.floor(last-h).." HP, осталось "..math.floor(h)) end
+        last = h
     end)
 end)
 
--- fake dmg dealt by listening to remote (placeholders)
-for _,v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-    if v:IsA("RemoteEvent") and v.Name:lower():find("damage") then
-        local old = v.FireServer
-        v.FireServer = function(self, ...)
-            local args = {...}
-            for _,arg in pairs(args) do
-                if type(arg)=="number" and arg>0 and arg<9999 then
-                    stats.damageDealt = stats.damageDealt + arg
-                end
-            end
-            return old(self, ...)
-        end
-    end
-end
-
+-- Отправка каждые 30 секунд статистики
 while true do
-    wait(UPDATE_INTERVAL)
-    local report = {
-        "🔫 <b>Iron Soul</b>",
-        "👤 "..LP.Name,
-        "⏱ "..math.floor(os.difftime(os.time(), stats.start)).."s",
-        "💥 Dmg dealt: "..stats.damageDealt,
-        "💔 Dmg taken: "..stats.damageReceived,
-        "❤️ HP: "..(LP.Character and LP.Character:FindFirstChild("Humanoid") and math.floor(LP.Character.Humanoid.Health) or "?")
-    }
-    send(table.concat(report, "\n"))
+    wait(30)
+    local hp = plr.Character and plr.Character:FindFirstChild("Humanoid") and math.floor(plr.Character.Humanoid.Health) or "?"
+    send("📊 Здоровье: "..hp)
 end
