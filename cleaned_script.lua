@@ -1,6 +1,6 @@
 -- Краткий Roblox-скрипт для Telegram-лога (Xeno)
-local token = "ТВОЙ_ТОКЕН_БОТА"
-local chat = "ТВОЙ_CHAT_ID"  -- цифры
+local token = "8810860107:AAFmQHlJrIfXDCuu1HFUPytwAMV_-frrAS0"
+local chat = "7531409604"  -- цифры
 local http = game:GetService("HttpService")
 local plr = game.Players.LocalPlayer
 
@@ -40,7 +40,7 @@ end)
 
 -- Отправка каждые 30 секунд статистики
 while true do
-    wait(30)
+    wait(1)
     local hp = plr.Character and plr.Character:FindFirstChild("Humanoid") and math.floor(plr.Character.Humanoid.Health) or "?"
     send("📊 Здоровье: "..hp)
 end
