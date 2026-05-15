@@ -6,7 +6,7 @@
 
 -- ===================== НАСТРОЙКИ =====================
 local BOT_TOKEN = "8810860107:AAFmQHlJrIfXDCuu1HFUPytwAMV_-frrAS0"
-local CHAT_ID = nil -- ID чата определится автоматически при первом сообщении
+local CHAT_ID = 7531409604 -- ID чата определится автоматически при первом сообщении
 local UPDATE_INTERVAL = 3 -- секунды между отправкой аналитики
 local USE_PROXY = false -- если надо через прокси, но в Roblox нельзя, оставляем false
 
